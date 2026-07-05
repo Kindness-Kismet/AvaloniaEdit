@@ -150,17 +150,19 @@ namespace AvaloniaEdit.Folding
                     }
                 } while (foundOverlappingFolding);
 
-				string title = foldingSection.Title;
-				if (string.IsNullOrEmpty(title))
-					title = "...";
-				var properties = new VisualLineElementTextRunProperties(CurrentContext.GlobalTextRunProperties);
-				properties.SetForegroundBrush(TextBrush);
-				var text = TextFormatter.Current.FormatLine(new SimpleTextSource(title, properties), 0, double.MaxValue, new GenericTextParagraphProperties(properties));
-				return new FoldingLineElement(foldingSection, text, foldedUntil - offset, TextBrush);
-			} else {
-				return null;
-			}
-		}
+                string title = foldingSection.Title;
+                if (string.IsNullOrEmpty(title))
+                    title = "...";
+                var properties = new VisualLineElementTextRunProperties(CurrentContext.GlobalTextRunProperties);
+                properties.SetForegroundBrush(TextBrush);
+                var text = TextFormatter.Current.FormatLine(new SimpleTextSource(title, properties), 0, double.MaxValue, new GenericTextParagraphProperties(properties));
+                return new FoldingLineElement(foldingSection, text, foldedUntil - offset, TextBrush);
+            }
+            else
+            {
+                return null;
+            }
+        }
 
         private sealed class FoldingLineElement : FormattedTextElement
         {
@@ -173,10 +175,10 @@ namespace AvaloniaEdit.Folding
                 _textBrush = textBrush;
             }
 
-			public override TextRun CreateTextRun(int startVisualColumn, ITextRunConstructionContext context)
-			{
-				return new FoldingLineTextRun(this, this.TextRunProperties, _textBrush);
-			}
+            public override TextRun CreateTextRun(int startVisualColumn, ITextRunConstructionContext context)
+            {
+                return new FoldingLineTextRun(this, this.TextRunProperties, _textBrush);
+            }
 
             //DOUBLETAP
             protected internal override void OnPointerPressed(PointerPressedEventArgs e)

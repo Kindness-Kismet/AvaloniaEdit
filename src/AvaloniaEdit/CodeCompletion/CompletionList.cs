@@ -246,7 +246,7 @@ namespace AvaloniaEdit.CodeCompletion
         private void OnPointerPressed(object sender, PointerPressedEventArgs e)
         {
             var visual = e.Source as Visual;
-            if (!e.GetCurrentPoint(visual).Properties.IsLeftButtonPressed) 
+            if (!e.GetCurrentPoint(visual).Properties.IsLeftButtonPressed)
                 return;
 
             RequestInsertion(e);

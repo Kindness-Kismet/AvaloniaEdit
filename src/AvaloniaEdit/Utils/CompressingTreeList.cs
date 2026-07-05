@@ -449,7 +449,7 @@ namespace AvaloniaEdit.Utils
             var runLength = GetNode(ref indexInRun).Count;
             return index - indexInRun + runLength;
         }
-        
+
         /// <summary>
         /// Applies the conversion function to all elements in this CompressingTreeList.
         /// </summary>

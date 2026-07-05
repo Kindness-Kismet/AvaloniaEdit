@@ -696,9 +696,9 @@ namespace AvaloniaEdit.Editing
         {
             // Handle indirect mouse movement caused by scrolling the text area while holding down
             // the mouse button.
-            if (_mode == SelectionMode.Normal 
-                || _mode == SelectionMode.WholeWord 
-                || _mode == SelectionMode.WholeLine 
+            if (_mode == SelectionMode.Normal
+                || _mode == SelectionMode.WholeWord
+                || _mode == SelectionMode.WholeLine
                 || _mode == SelectionMode.Rectangular)
             {
                 if (TextArea.TextView.VisualLinesValid)

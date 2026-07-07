@@ -36,11 +36,75 @@ jobs:
       - name: Build and pack
         run: dotnet pack src/AvaloniaEdit/AvaloniaEdit.csproj -c Release -o nupkg
 
+      - name: Build GitHub Pages NuGet feed
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $package = Get-ChildItem nupkg -Filter '*.nupkg' | Where-Object { $_.Name -notlike '*.snupkg' } | Select-Object -First 1
+          if (-not $package) { throw 'No .nupkg package found.' }
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $extractDir = Join-Path $env:RUNNER_TEMP 'avaloniaedit-nuspec'
+          New-Item -ItemType Directory -Force -Path $extractDir | Out-Null
+          $zip = [System.IO.Compression.ZipFile]::OpenRead($package.FullName)
+          try {
+            $nuspecEntry = $zip.Entries | Where-Object { $_.FullName.EndsWith('.nuspec') } | Select-Object -First 1
+            if (-not $nuspecEntry) { throw 'No .nuspec file found in package.' }
+            $nuspecPath = Join-Path $extractDir $nuspecEntry.Name
+            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($nuspecEntry, $nuspecPath, $true)
+          } finally {
+            $zip.Dispose()
+          }
+
+          [xml]$nuspec = Get-Content $nuspecPath
+          $metadata = $nuspec.package.metadata
+          $id = [string]$metadata.id
+          $version = [string]$metadata.version
+          $lowerId = $id.ToLowerInvariant()
+          $lowerVersion = $version.ToLowerInvariant()
+          $repoName = ($env:GITHUB_REPOSITORY -split '/')[1]
+          $baseUrl = "https://$($env:GITHUB_REPOSITORY_OWNER.ToLowerInvariant()).github.io/$repoName"
+          $feedRoot = 'pages'
+          $flatRoot = Join-Path $feedRoot 'nuget/v3/flatcontainer'
+          $flatIdDir = Join-Path $flatRoot $lowerId
+          $flatPackageDir = Join-Path $flatIdDir $lowerVersion
+          New-Item -ItemType Directory -Force -Path $flatPackageDir | Out-Null
+          New-Item -ItemType File -Force -Path (Join-Path $feedRoot '.nojekyll') | Out-Null
+
+          $lowerPackageName = "$lowerId.$lowerVersion.nupkg"
+          Copy-Item $package.FullName (Join-Path $flatPackageDir $lowerPackageName)
+          Copy-Item $package.FullName (Join-Path $feedRoot $package.Name)
+          Copy-Item $nuspecPath (Join-Path $flatPackageDir "$lowerId.nuspec")
+          Get-ChildItem nupkg -Filter '*.snupkg' | ForEach-Object {
+            Copy-Item $_.FullName (Join-Path $feedRoot $_.Name)
+          }
+
+          @{
+            version = '3.0.0'
+            resources = @(
+              @{
+                '@id' = "$baseUrl/nuget/v3/flatcontainer/"
+                '@type' = 'PackageBaseAddress/3.0.0'
+              }
+            )
+          } | ConvertTo-Json -Depth 20 | Set-Content -Encoding utf8 (Join-Path $feedRoot 'nuget/v3/index.json')
+
+          @{
+            versions = @($lowerVersion)
+          } | ConvertTo-Json -Depth 20 | Set-Content -Encoding utf8 (Join-Path $flatIdDir 'index.json')
+
+          @"
+          <!doctype html>
+          <meta charset="utf-8">
+          <meta http-equiv="refresh" content="0; url=nuget/v3/index.json">
+          <a href="nuget/v3/index.json">NuGet v3 feed</a>
+          "@ | Set-Content -Encoding utf8 (Join-Path $feedRoot 'index.html')
+
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./nupkg
+          publish_dir: ./pages
           publish_branch: gh-pages
           force_orphan: true
 

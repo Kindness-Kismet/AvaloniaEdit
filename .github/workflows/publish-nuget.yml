@@ -9,10 +9,15 @@ on:
       - 'Directory.Build.props'
       - 'Directory.Packages.props'
       - '.github/workflows/publish-nuget.yml'
+  workflow_dispatch:
 
 jobs:
   build-and-publish:
     runs-on: windows-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -21,7 +26,9 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: |
+            8.0.x
+            10.0.x
 
       - name: Restore dependencies
         run: dotnet restore src/AvaloniaEdit/AvaloniaEdit.csproj
@@ -29,19 +36,11 @@ jobs:
       - name: Build and pack
         run: dotnet pack src/AvaloniaEdit/AvaloniaEdit.csproj -c Release -o nupkg
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: nupkg
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./nupkg
+          publish_branch: gh-pages
+          force_orphan: true
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
